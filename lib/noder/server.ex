@@ -18,8 +18,7 @@ defmodule Noder.Server do
 
   def handle_info(:tick, state) do
     IO.inspect("tick")
-    board = Battleship.state(state.pid)
-    IO.ANSI.clear()
+    board = Battleship.state(state.pid).board
     dump(board)
     {responses, _} = GenServer.multi_call(Node.list(), :client, {:tick, board})
 
@@ -47,8 +46,8 @@ defmodule Noder.Server do
 
   def start_server(_), do: nil
 
-  defp dump(state) do
-    state.board
+  defp dump(board) do
+    board
     |> Enum.each(fn row ->
       IO.puts(Enum.join(row))
     end)

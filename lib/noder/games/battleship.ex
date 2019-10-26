@@ -35,8 +35,9 @@ defmodule Noder.Games.Battleship do
     GenServer.call(pid, {:update, board})
   end
 
-  def handle_call({:update, board}, _, _state) do
-    {:reply, board, board}
+  def handle_call({:update, board}, _, state) do
+    new_state = %{state | board: board}
+    {:reply, new_state, new_state}
   end
 
   def handle_call(:state, _, state) do
