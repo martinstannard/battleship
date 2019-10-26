@@ -44,11 +44,15 @@ defmodule Noder.Games.Battleship do
   end
 
   def bomb(state, {r, c}) do
+    replace_at_with(state, {r, c}, "X")
+  end
+
+  def replace_at_with(state, {r, c}, character) do
     row = Enum.at(state, r)
 
     new_row =
       row
-      |> List.replace_at(c, "X")
+      |> List.replace_at(c, character)
 
     new_state =
       state
