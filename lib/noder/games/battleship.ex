@@ -6,7 +6,8 @@ defmodule Noder.Games.Battleship do
   use GenServer
 
   @cols 80
-  @rows 20
+  @rows 40
+  @ships 20
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: :battleship)
@@ -25,13 +26,10 @@ defmodule Noder.Games.Battleship do
   end
 
   def init(_) do
-    board =
-      "~"
-      |> List.duplicate(@cols)
-      |> List.duplicate(@rows)
+    board = []
 
     ships =
-      0..5
+      0..@ships
       |> Enum.map(fn _ ->
         create_ship()
       end)
@@ -45,7 +43,20 @@ defmodule Noder.Games.Battleship do
       |> ship_coords
       |> Enum.member?(coord)
 
-    {:reply, hit, state}
+    updated_ships = update_ships(coord, state.ships)
+    last = was_last_ship_piece(coord, updated_ships)
+
+    cleaned_ships =
+      updated_ships
+      |> Enum.reject(fn ship ->
+        Enum.empty?(ship)
+      end)
+
+    new_state =
+      state
+      |> Map.put(:ships, cleaned_ships)
+
+    {:reply, {hit, last}, new_state}
   end
 
   def handle_call({:update, board}, _, state) do
@@ -55,24 +66,6 @@ defmodule Noder.Games.Battleship do
 
   def handle_call(:state, _, state) do
     {:reply, state, state}
-  end
-
-  def bomb(state, {r, c}) do
-    replace_at_with(state, {r, c}, "X")
-  end
-
-  def replace_at_with(state, {r, c}, character) do
-    row = Enum.at(state, r)
-
-    new_row =
-      row
-      |> List.replace_at(c, character)
-
-    new_state =
-      state
-      |> List.replace_at(r, new_row)
-
-    new_state
   end
 
   defp create_ship do
@@ -87,6 +80,26 @@ defmodule Noder.Games.Battleship do
   defp ship_coords(state) do
     state.ships
     |> List.flatten()
+  end
+
+  defp update_ships(coords, ships) do
+    ships
+    |> Enum.map(fn ship ->
+      ship
+      |> Enum.reject(fn c ->
+        c == coords
+      end)
+    end)
+  end
+
+  defp was_last_ship_piece(coords, ships) do
+    ships
+    |> Enum.map(fn ship ->
+      Enum.empty?(ship)
+    end)
+    |> Enum.any?(fn b ->
+      b == true
+    end)
   end
 
   def size do

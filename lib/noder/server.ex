@@ -42,14 +42,13 @@ defmodule Noder.Server do
 
   defp call_clients(state) do
     clients = Node.list()
-    # IO.inspect(clients)
 
     clients
     |> Enum.map(fn client ->
       coords = GenServer.call({:client, client}, :tick)
       hit = Battleship.hit(state.pid, coords)
       GenServer.call({:client, client}, {:update, {coords, hit}})
-      {client, coords}
+      {client, coords, hit}
     end)
   end
 
@@ -73,9 +72,11 @@ defmodule Noder.Server do
 
     IO.write([IO.ANSI.home(), IO.ANSI.clear()])
 
-    0..20
+    %{rows: rows, columns: columns} = Battleship.size()
+
+    0..rows
     |> Enum.each(fn col ->
-      0..80
+      0..columns
       |> Enum.each(fn row ->
         write({col, row}, ship_positions, all_hits, all_misses)
       end)
@@ -90,6 +91,9 @@ defmodule Noder.Server do
       IO.puts("#{client} : #{score}")
     end)
 
+    IO.puts("Ships: #{length(bs.ships)}")
+    # IO.inspect(bs.ships)
+
     state
   end
 
@@ -102,13 +106,10 @@ defmodule Noder.Server do
 
   defp handle_responses(responses, state) do
     clients = state.clients
-    # IO.inspect(clients, label: :clients)
 
     new_clients =
       responses
-      # |> IO.inspect(label: :responses)
-      |> Enum.reduce(clients, fn {client, coords}, acc ->
-        hit = Battleship.hit(state.pid, coords)
+      |> Enum.reduce(clients, fn {client, coords, hit}, acc ->
         update_client(acc, client, coords, hit)
       end)
 
@@ -116,20 +117,20 @@ defmodule Noder.Server do
     |> Map.put(:clients, new_clients)
   end
 
-  defp update_client(clients, client, coords, true) do
+  defp update_client(clients, client, coords, {true, last}) do
     old_client = Map.get(clients, client)
     new_hits = [coords | old_client.hits]
 
     new_client =
       old_client
       |> Map.put(:hits, new_hits)
-      |> Map.put(:score, old_client.score + 5)
+      |> Map.put(:score, old_client.score + score(true, last))
 
     clients
     |> Map.put(client, new_client)
   end
 
-  defp update_client(clients, client, coords, false) do
+  defp update_client(clients, client, coords, {false, _}) do
     old_client = Map.get(clients, client)
     new_misses = [coords | old_client.misses]
     new_client = Map.put(old_client, :misses, new_misses)
@@ -137,6 +138,9 @@ defmodule Noder.Server do
     clients
     |> Map.put(client, new_client)
   end
+
+  defp score(true, true), do: 5000
+  defp score(true, _), do: 5
 
   defp all_hits(clients) do
     clients
