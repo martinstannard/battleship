@@ -2,7 +2,7 @@ defmodule Noder.Server do
   use GenServer
   alias Noder.Games.Battleship
 
-  @tick_ms 30
+  @tick_ms 1000
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: :server)
@@ -11,6 +11,7 @@ defmodule Noder.Server do
   def init(_) do
     start_server(Node.self())
     {:ok, pid} = Battleship.start_link(nil)
+
     {:ok, %{pid: pid, clients: %{}}}
   end
 
@@ -41,6 +42,7 @@ defmodule Noder.Server do
 
   defp call_clients(state) do
     clients = Node.list()
+    # IO.inspect(clients)
 
     clients
     |> Enum.map(fn client ->
@@ -59,7 +61,7 @@ defmodule Noder.Server do
   defp new_clients(clients) do
     Node.list()
     |> Enum.reduce(clients, fn node, acc ->
-      Map.put_new(acc, node, %{hits: [], misses: []})
+      Map.put_new(acc, node, %{hits: [], misses: [], score: 0})
     end)
   end
 
@@ -68,6 +70,8 @@ defmodule Noder.Server do
     ship_positions = List.flatten(bs.ships)
     all_hits = all_hits(state.clients)
     all_misses = all_misses(state.clients)
+
+    IO.write([IO.ANSI.home(), IO.ANSI.clear()])
 
     0..20
     |> Enum.each(fn col ->
@@ -80,10 +84,16 @@ defmodule Noder.Server do
     end)
 
     IO.puts("")
+
+    state.clients
+    |> Enum.each(fn {client, %{score: score}} ->
+      IO.puts("#{client} : #{score}")
+    end)
+
     state
   end
 
-  def start_server(:"node1@127.0.0.1") do
+  def start_server(:"node1@10.0.1.10") do
     Process.send_after(self(), :tick, @tick_ms)
     IO.inspect("SERVER STARTING")
   end
@@ -109,7 +119,11 @@ defmodule Noder.Server do
   defp update_client(clients, client, coords, true) do
     old_client = Map.get(clients, client)
     new_hits = [coords | old_client.hits]
-    new_client = Map.put(old_client, :hits, new_hits)
+
+    new_client =
+      old_client
+      |> Map.put(:hits, new_hits)
+      |> Map.put(:score, old_client.score + 5)
 
     clients
     |> Map.put(client, new_client)

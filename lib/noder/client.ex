@@ -36,12 +36,15 @@ defmodule Noder.Client do
     {:reply, state, state}
   end
 
-  def connect(:"node1@127.0.0.1") do
+  # def connect(:"node1@127.0.0.1") do
+  def connect(:"node1@10.0.1.10") do
     IO.inspect("NOT CONNECTING")
   end
 
   def connect(_) do
     IO.inspect("CONNECTING")
-    Node.connect(:"node1@127.0.0.1")
+
+    Node.connect(:"node1@10.0.1.10")
+    |> IO.inspect()
   end
 end
