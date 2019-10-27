@@ -12,6 +12,18 @@ defmodule Noder.Games.Battleship do
     GenServer.start_link(__MODULE__, nil, name: :battleship)
   end
 
+  def state(pid) do
+    GenServer.call(pid, :state)
+  end
+
+  def update(pid, board) do
+    GenServer.call(pid, {:update, board})
+  end
+
+  def hit(pid, coord) do
+    GenServer.call(pid, {:hit, coord})
+  end
+
   def init(_) do
     board =
       "~"
@@ -27,12 +39,13 @@ defmodule Noder.Games.Battleship do
     {:ok, %{board: board, ships: ships}}
   end
 
-  def state(pid) do
-    GenServer.call(pid, :state)
-  end
+  def handle_call({:hit, coord}, _, state) do
+    hit =
+      state
+      |> ship_coords
+      |> Enum.member?(coord)
 
-  def update(pid, board) do
-    GenServer.call(pid, {:update, board})
+    {:reply, hit, state}
   end
 
   def handle_call({:update, board}, _, state) do
@@ -69,5 +82,10 @@ defmodule Noder.Games.Battleship do
     start_col = :rand.uniform(width)
 
     for r <- start_row..(start_row + 1), c <- start_col..(start_col + 7), do: {r, c}
+  end
+
+  defp ship_coords(state) do
+    state.ships
+    |> List.flatten()
   end
 end
