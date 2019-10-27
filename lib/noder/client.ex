@@ -19,20 +19,16 @@ defmodule Noder.Client do
   def init(_) do
     connect(Node.self())
     {:ok, game} = Game.start_link(Battleship.size())
-    IO.inspect(game)
     {:ok, %{game: game}}
   end
 
   def handle_call(:tick, _, state) do
-    IO.inspect(state)
     response = Game.tick(state.game)
-    IO.inspect(response, label: :response)
     {:reply, response, state}
   end
 
   def handle_call({:update, result}, _, state) do
     Game.update(state.game, result)
-    IO.inspect(result, label: :result)
     {:reply, state, state}
   end
 

@@ -9,11 +9,14 @@ defmodule Noder.Game do
     GenServer.start_link(__MODULE__, map_size, name: :game)
   end
 
+  @doc "reply with the row and column of your target"
   def tick(pid) do
     GenServer.call(pid, :tick)
   end
 
+  @doc "the result of the last request"
   def update(pid, result) do
+    IO.inspect(result, label: :result)
     GenServer.call(pid, {:update, result})
   end
 
@@ -22,8 +25,9 @@ defmodule Noder.Game do
   end
 
   def handle_call(:tick, _, state) do
-    response = {:rand.uniform(state.map_size.rows), :rand.uniform(state.map_size.columns)}
-    {:reply, response, state}
+    target = {:rand.uniform(state.map_size.rows), :rand.uniform(state.map_size.columns)}
+    IO.inspect(target, label: :target)
+    {:reply, target, state}
   end
 
   def handle_call({:update, result}, _, state) do
