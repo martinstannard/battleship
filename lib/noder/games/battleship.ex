@@ -29,7 +29,7 @@ defmodule Noder.Games.Battleship do
     board = []
 
     ships =
-      0..@ships
+      0..(@ships - 1)
       |> Enum.map(fn _ ->
         create_ship()
       end)

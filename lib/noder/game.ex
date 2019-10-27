@@ -14,7 +14,10 @@ defmodule Noder.Game do
     GenServer.call(pid, :tick)
   end
 
-  @doc "the result of the last request"
+  @doc """
+  the result of the last request
+  format of the result is {{row, col}, {hit, sunk}}
+  """
   def update(pid, result) do
     IO.inspect(result, label: :result)
     GenServer.call(pid, {:update, result})
@@ -30,8 +33,7 @@ defmodule Noder.Game do
     {:reply, target, state}
   end
 
-  def handle_call({:update, result}, _, state) do
-    IO.inspect(result)
+  def handle_call({:update, _result}, _, state) do
     # do something here
     {:reply, state, state}
   end
