@@ -2,7 +2,7 @@ defmodule Noder.Server do
   use GenServer
   alias Noder.Games.Battleship
 
-  @tick_ms 1000
+  @tick_ms 30
 
   def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: :server)
@@ -11,31 +11,26 @@ defmodule Noder.Server do
   def init(_) do
     start_server(Node.self())
     {:ok, pid} = Battleship.start_link(nil)
-
     {:ok, %{pid: pid, clients: %{}}}
   end
 
   def handle_info(:tick, state) do
-    IO.inspect("tick")
-    bs = Battleship.state(state.pid)
-    # {responses, _} = GenServer.multi_call(Node.list(), :client, {:tick, board})
+    # new_state =
+    #   state
+    #   |> IO.inspect()
+    #   |> update_client_list
+    #   |> call_clients
+    #   |> handle_responses(state)
+    #   |> dump
 
-    state = update_clients(state)
-    IO.inspect(state)
+    state = update_client_list(state)
+
     responses = call_clients(state)
-
-    new_board =
-      responses
-      |> Enum.reduce(bs.board, fn {_, coords}, acc ->
-        acc
-        |> Battleship.bomb(coords)
-      end)
 
     state = handle_responses(responses, state)
 
-    Battleship.update(state.pid, new_board)
-
     dump(state)
+
     Process.send_after(self(), :tick, @tick_ms)
     {:noreply, state}
   end
@@ -45,19 +40,18 @@ defmodule Noder.Server do
   end
 
   defp call_clients(state) do
-    bs = Battleship.state(state.pid)
-    board = bs.board
     clients = Node.list()
 
     clients
     |> Enum.map(fn client ->
-      coords = GenServer.call({:client, client}, {:tick, board})
+      coords = GenServer.call({:client, client}, :tick)
+      hit = Battleship.hit(state.pid, coords)
+      GenServer.call({:client, client}, {:update, {coords, hit}})
       {client, coords}
     end)
-    |> IO.inspect()
   end
 
-  defp update_clients(state) do
+  defp update_client_list(state) do
     state
     |> Map.put(:clients, new_clients(state.clients))
   end
@@ -80,11 +74,13 @@ defmodule Noder.Server do
       0..80
       |> Enum.each(fn row ->
         write({col, row}, ship_positions, all_hits, all_misses)
-        # IO.puts(Enum.join(row))
       end)
 
       IO.puts("")
     end)
+
+    IO.puts("")
+    state
   end
 
   def start_server(:"node1@127.0.0.1") do
@@ -96,9 +92,11 @@ defmodule Noder.Server do
 
   defp handle_responses(responses, state) do
     clients = state.clients
+    # IO.inspect(clients, label: :clients)
 
     new_clients =
       responses
+      # |> IO.inspect(label: :responses)
       |> Enum.reduce(clients, fn {client, coords}, acc ->
         hit = Battleship.hit(state.pid, coords)
         update_client(acc, client, coords, hit)

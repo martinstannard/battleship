@@ -2,22 +2,38 @@ defmodule Noder.Client do
   use GenServer
 
   alias Noder.Game
+  alias Noder.Games.Battleship
 
-  def start_link(val \\ 0) do
-    GenServer.start_link(__MODULE__, val, name: :client)
+  def start_link(_) do
+    GenServer.start_link(__MODULE__, nil, name: :client)
+  end
+
+  def tick(pid) do
+    GenServer.call(pid, :tick)
+  end
+
+  def update(pid, result) do
+    GenServer.call(pid, {:update, result})
   end
 
   def init(_) do
     connect(Node.self())
-    {:ok, 0}
+    {:ok, game} = Game.start_link(Battleship.size())
+    IO.inspect(game)
+    {:ok, %{game: game}}
   end
 
-  def handle_call({:tick, world_state}, _, state) do
-    # IO.inspect(state, label: :state)
-    # IO.inspect(world_state, label: :world_state)
-    response = Game.call(world_state)
+  def handle_call(:tick, _, state) do
+    IO.inspect(state)
+    response = Game.tick(state.game)
     IO.inspect(response, label: :response)
     {:reply, response, state}
+  end
+
+  def handle_call({:update, result}, _, state) do
+    Game.update(state.game, result)
+    IO.inspect(result, label: :result)
+    {:reply, state, state}
   end
 
   def connect(:"node1@127.0.0.1") do

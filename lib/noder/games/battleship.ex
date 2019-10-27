@@ -88,4 +88,8 @@ defmodule Noder.Games.Battleship do
     state.ships
     |> List.flatten()
   end
+
+  def size do
+    %{rows: @rows, columns: @cols}
+  end
 end
